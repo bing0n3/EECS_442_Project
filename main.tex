@@ -255,6 +255,42 @@ Both Difference and ratio tells that having bachelor degree has causal effect on
 We get the same caudal difference and ration through the 2 methods, which also proves that the professor said they are mathematically equal.
 
 \subsection{Health-Care Dataset}
+\textbf{Causal Problem}\par
+Our causal problem is to compute the causal effect of having a heart disease on BMI. The backdoor paths are:
+\begin{enumerate}
+\item $heart_disease \leftarrow avg_glucose_level \rightarrow bmi $
+\item $heart_disease \leftarrow avg_glucose_level \leftarrow smoking_status \rightarrow bmi $ 
+\item $heart_disease \leftarrow smoking_status \rightarrow avg_glucose_level \rightarrow bmi $
+\item $heart_disease \leftarrow smoking_status \rightarrow bmi $
+\item $heart_disease \leftarrow hypertension \leftarrow smoking_status \rightarrow avg_glucose_level \rightarrow bmi $
+\item $heart_disease \leftarrow hypertension \leftarrow smoking_status \rightarrow bmi $
+\end{enumerate}
+To block all backdoor paths from \emph{heart_disease} to \emph{bmi}, we have to condition on \emph{avg_glucose_level} and \emph{smoking_status}.
+\textbf{IP Weighting}\par
+We use stabilized weight $SW^{A}$, so we need to estimate $p(A)$ and $p(A|L)$.
+For $p(A)$, because the treatment feature \emph{heart_disease} is binary, we can simply count the number of examples with A=0 or A=1, and use the frequency as the probability.
+For $p(A|L)$, because the confounder \emph{avg_glucose_level} is continuous, we use logistic regression to model $p(A|L)$.
+Now that we have the stabilized weights, we fit the linear mean model $E[Y|A]=\theta_{0}+\theta_{1}A$ by weighted least squares using the stabilized weights. The causal effect is $E[Y|A=1]-E[Y|A=0]$
+\textbf{Standardization}\par
+Because the confounder \emph{avg_glucose_level} is continuous, we use propensity score $p(L)=Pr[A=1|L]$ rather than $Pr[L=l]$.
+First, we use logistic regression to model $p(A|L)$. We now have the propensity score $p(L)=p(A=1|L)$ for each example.
+Then we divide the dataset into 50 stratas with approximately same number of examples in terms of the propensity scores.
+Finally we compute the average causal effect using
+$$E[Y^{a=1}|p(L)=s]-E[Y^{a=0}|p(L)=s]=E[Y|A=1,p(L)=s]-E[Y|A=0,p(L)=s]$$
+Where $p(L)=s$ means data in the s$th$ strata.
+\textbf{Result}\par
+In both IP weighting and standardization, we use 12345 as the random seed in logistic regression.
+
+IP weighting:
+	$$E[Y|A=0]=28.5669$$
+	$$E[Y|A=1]=30.2121$$
+Standardization:
+	$$E[Y|A=0]=28.5728$$
+	$$E[Y|A=1]=30.1610$$
+
+For people without a heart disease, the mean BMI is 28.5669 for IP weighting, and 28.5728 for standardization.
+For people with a heart disease, the mean BMI is 30.2121 for IP weighting, and 30.1610 for standardization.
+The ACE by IP weighting is 1.6452, while the ACE by standardization is 1.5882. Results by two methods both imply that having a heart disease can cause the BMI to be larger by approximately 1.6.
 
 
 \section{Conclusions}
