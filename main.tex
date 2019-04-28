@@ -1,0 +1,329 @@
+%++++++++++++++++++++++++++++++++++++++++
+% Don't modify this section unless you know what you're doing!
+\documentclass[letterpaper,12pt]{article}
+\usepackage{tabularx} % extra features for tabular environment
+\usepackage{appendix}
+\usepackage{subfigure}
+\usepackage{amsmath}  % improve math presentation
+\usepackage{graphicx} % takes care of graphic including machinery
+% \usepackage[margin=1in,letterpaper]{geometry} % decreases margins
+\usepackage{cite} % takes care of citations
+% \usepackage[final]{hyperref} % adds hyper links inside the generated pdf file
+% \hypersetup{
+% 	colorlinks=true,       % false: boxed links; true: colored links
+% 	linkcolor=blue,        % color of internal links
+% 	citecolor=blue,        % color of links to bibliography
+% 	filecolor=magenta,     % color of file links
+% 	urlcolor=blue         
+% }
+\setlength{\parskip}{10pt}
+\setlength{\parindent}{0cm}
+%++++++++++++++++++++++++++++++++++++++++
+
+
+\begin{document}
+
+\title{EECS 442 Final Project}
+\author{Ikung Hsu, Ze Jin, Bingwen Ma, Sixiao Zhang}
+\date{\today}
+\maketitle
+
+\begin{abstract}
+\noindent The ratio of undergraduate education is much higher than before, however there are also many successful people who don’t finish the undergraduate education or go to work after high school. Many students are confused about the purpose of undergraduate education, or whether spending 4 more years in the university could bring them a better life in future. Here we propose 2 causal inference method: standardization and ip weighting, with backdoor adjustment to show the causal effect of undergraduate education on income.
+
+BMI is an important indicator of our physical healthy, it can directly indicate if we are overweight or malnutrition. Everyone want to have a healthy life so more and more people pay more attention on this indicator. There also must be some bad habits that we need to cut out. Obviously, smoking is one of them, 
+\end{abstract}
+
+
+\section{Introduction}
+TODO
+
+\section{Dataset Description}
+\subsection{Adult Dataset}
+
+The dataset, popularly known as “Adult” data, is publicly available in the UCI machine learning repository. It was extracted from the 1994  Census bureau database by Ronny Kohavi and Barry Becker.  A set of reasonably clean records was extracted using the following conditions: $((AAGE>16) \,\&\&\,  (AGI>100) \,\&\&\,  (AFNLWGT>1)\,\&\&\, (HRSWK>0))$. \par
+\noindent The dataset has 48482 entries and a binomial indicating whether a person makes over \$50K a year. There are  14 attributes in the dataset consisting of eight nominal(Appendix A.1) and six continuous attribute(Appendix A.2).\par
+
+Education contains the highest level of education achieved by an individual. Work Class describes the type of employer such as self-employed.  Occupation represents general type of occupation such as Tech-­support, Farm-fishing or Sales. The relationship describes what this individual is relative to others and marital status represents the status of marital such as married or divorced. The other nominal attributes are native country of residence, gender and race.  \par
+
+The continuous attribute are age, hours  worked per week, education number, capital gain and loss, and  final weight. The education number is just a numeric representation of the education attributes. Final weight's definition is ambious. In some project, it is the number of people entry represents. In some other project, it is the order number of entry. Therefore, we will ingore the attribute fnlwgt. \par
+
+In this experiment, we want to find out the causal effect of whether getting a bachelor degree or higher on income. And we split education to two part \{1st-4th,  5th-6th , 7th-8th , 9th ,10th , 11th ,12th , HS-grad ,Prof-school ,Assoc-acdm, Assoc-voc , Some-college\} and \{Bachelors ,Masters , Doctorate\} according to research problem. \par
+
+
+\subsection{Health-Care Dataset}
+This healthcare-dataset is a dataset that contains 60k people’s basic and health information. It contains 10 attributes: \par
+Gender: subject’s gender, 0-female, 1-male, 2-other;\\
+Age: subject’s age;\\
+Hypertension: if subject has high blood pressure, 0-no, 1-yes;\\
+Heart disease: if subject has heart disease, 0-no, 1-yes;\\
+Ever married: if subject has ever married, 0-no, 1-yes;\\
+Work type: 0-children, 1-private, 2-never worked, 3-self employed, 4-govt job;\\
+Residence type: 0-rural, 1-urban;\\
+Avg glucose level: the value of blood-sugar content；\\
+Bmi: Body Mass Index, is a common weight-for-height measure used to classify individuals by weight status;\\
+Smoking status: 0-never smoked, 1-formerly smoked, 2-smokes, 3-not know.\par
+
+In this experiment, we want to find out the causal effect of heart disease to the BMI value. We make heart disease as treatment and do the causal analysis to verify our causal graph.\par
+
+
+\section{Dataset Analysis}
+
+% graph for Adult
+\subsection{Adult Dataset}
+We  draw  a  causal  graph  ourselves, seen Figure 1,  and  in  the  rest  of  this  part  we  will  gothrough the whole causal graph to do some description and analysis to thisgraph.\par
+\begin{figure}[htb]
+\centering
+\includegraphics[scale=0.4]{pics_adult/adult_graph.png}
+\caption{Casual Graph on Adult}
+\label{fig:pathdemo}
+\end{figure}
+
+
+Firstly, we analyzed the influence of age. Age literally have influence on income. Luong et. al\cite{luong2009age} describe that the income would increase in early years, reach a peak at middle age and have a decline thereafter. In Adult dataset, we could find that there is a significant amount of variance between the ratio of $>50k$ to $<=50k$ between the age groups, as seen Figure 2 (a). Dataflowing\cite{occ-age} evaluated the data of 5-year American Community Survey from 2016, and found that the common occupation changed by age. This evaluation indicated age have influence on occupation. In our data, we calculated the expectation of each occupation for each age group and found that age actually influence the occupation choice; as seen Figure 2 (b), it is expectations of Handlers-cleaners by each age groups.\par
+
+\begin{figure}[htb]
+\centering
+\subfigure[Number of People by Age Group and Income]{
+% \begin{minipage}[t]{0.25\linewidth}
+\centering
+\includegraphics[width=0.3\textwidth, height=0.2\textwidth]{pics_adult/age_income.png}
+%\caption{fig1}
+% \end{minipage}%
+}
+\subfigure[Expectations of Handlers and  Cleaners by Each Age Groups]{
+% \begin{minipage}[t]{0.25\linewidth}
+\centering
+\includegraphics[width=0.3\textwidth,height=0.2\textwidth]{pics_adult/cleaner.png}
+%\caption{fig1}
+% \end{minipage}%
+}
+\quad
+\subfigure[Ratio by Income and Gender]{
+% \begin{minipage}[t]{0.25\linewidth}
+\centering
+\includegraphics[width=0.3\textwidth, height=0.2\textwidth]{pics_adult/gender_income.png}
+%\caption{fig1}
+% \end{minipage}%
+}
+\subfigure[Number by Relationship and Martial Status]{
+% \begin{minipage}[t]{0.25\linewidth}
+\centering
+\includegraphics[width=0.3\textwidth, height=0.2\textwidth]{pics_adult/m_r.png}
+%\caption{fig1}
+% \end{minipage}%
+}
+\caption{Adult Data Analysis}
+\end{figure}
+
+Secondly, gender inequality exists in every country of the world\cite{kenworthy1999gender} and gender have influence on income and occupation. Zeher et. al\cite{bobbitt2007gender} evaluated the income of male and female, and shows that the income gap between male and female was still substantial, about \$4,400 -- if women and men had similar background. Our evaluation in Adult dataset also support this point, we found the male is more likely to earning 50k or above, as seen Figure 2 (c). Cotter et. al's\cite{cotter2004gender} work proved gender inequality in the labor market persists, nearly 9 out of 10 men are in the labor force, but only 3 out 4 women are working. Gender segregation also exists within many occupations, such as nursing\cite{porter1992women}. We also calculated casual effect of sex on occupations on Adult dataset and the result shows that gender actually have casual effect on some specific occupation, such as "craft-repair", "farming-fishing" and "transport-moving". Gender certainly have effect on relationship. The relationship describes what this individual is relative to others. Only female could be others wife and male could be others husband. \par
+
+
+Marital status represents the status of marital. If the relationship of a individual is wife or husband, his/her martial status must be married. So relationship have effect on marital status. Our data also support our points, as seen Figure 2 (d).\par
+
+Native country also has effect on education, race and income. According to Lopez et. al\cite{lópez_bialik_radford_lópez_bialik_radford_2018} research, educational attainment varies among the nation’s immigrant groups, particularly across immigrants from different regions of the world. Above 50\% immigrants from South and East Asian attained bachelor degree or above, but only 6\% immigrants from Mexico attained bachelor degree or above. It is obviously native country have effect on education. Origin Country also determine race of immigrants. For example, most of immigrants from China and Japan are Asian. Anastossova's report\cite{Anastossova2006What} supports the idea that native and immigrants have income gap. In US, the average native-immigrant income gap is around \$1386 on 2000. \par
+
+Next, we will introduce the effect of education on other attributes. Bureau of Labor Statistics data\cite{torpey} consistently shows the value of education, in terms of dollars. Workers with at least a bachelor’s degree earned more than the \$907 median weekly earnings for all workers. Worker with less than a high school diploma only earned \$520 median weekly earnings. Bureau of Labor Statistics\cite{torpey_watson} data also shows different occupations typically require a different level of education. Around 18 percent of jobs require bachelor’s degree or higher. Individuals who have less education than a bachelor's degree cannot get the job which require bachelor's degree. In short, education have effect on income and occupation. \par
+
+Besides attributes mentioned above are associated with occupation, it is easy to find out that there are still some other attributes are associated with occupation. As we all know, wage varies between occupations. Bureau of Labor Statistics data\cite{statistics_2018}, from May 2017 National Occupational Employment and Wage Estimates United States, supports our idea. Anesthesiologists annual mean wage is around \$265,990, but Serving Workers annual mean wage is only around \$21,230. Income gap between occupations persists. Work hour per week also varied between different occupations. The average work hour per week in goods-producing group is around 41.3 hours in Mar 2019. However, average work hour per week in retail trade group is only 30.4 hours in Mar 2019. \cite{statistics_2019_hours} \par
+
+Work hour per week is also associated with income. The reason is that Fair Labor Standards Act requires employers to pay a wage of 1.5 times an employee's normal pay rate after that employee has completed 40 hours of work on week basis.\par
+
+Occupations and investment are associated. Levi{\v{s}} et. al\cite{levivsauskaite2012impact} illustrates experience gained from occupation is an important factor for investment and individuals who work in the financial sector are risk-averse and overconfidence. So occupation would influence capital loss/gain. \par
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=5in]{pics_adult/occ-workclass.png}
+\caption{Number by Occupation and Work Class}
+\label{fig:pathdemo}
+\end{figure}
+
+Finally, there are some other factors that have association but not mentioned above.  Occupation have effect on work class. Work Class describes the type of employer such as self-employed. For example a individual is a solider, and he/she must work for government. The idea is also supported by Adult dataset. Data shows all armed forces are employed by federal government, seen as Figure 3. Therefore, we can inference occupation influence work class. The association between Capital Gain/Loss and income is obvious. If your capital gained, your income would increased; vice verse. However, in our data majority of enteritis have zero values in capital loss/gain. It implies that capital loss/gain is not a significant. \par 
+
+
+\subsection{Health-Care Dataset}
+\begin{figure}[htb]
+\centering
+\includegraphics[scale=0.5]{casual_health.png}
+\caption{Casual Graph on Health-Care}
+\label{fig:pathdemo}
+\end{figure}
+
+We draw a causal graph ourselves, as seen Figure 4, and in the rest of this part we will go through the whole causal graph to do some description and analysis to this graph.\par
+
+First, let’s focus on the edges directly point to BMI. we know that BMI is the measurement represent the value of weight-for-height, so of course it is different among ages by Kanemasa Y et.al\cite{kanemasa2018analysis} and genders by Kuan PX et.al\cite{kuan2011gender}. From the papers, we can know that different age group has different standard, and the oldest age group are most likely to have most healthy BMI. The standard of male’s and female’s BMI are also different, for male and female in the same age group, male’s BMI standard is a little bigger than female’s. And male’s BMI is more likely to bigger than female’s. \par
+
+For different work types, there also have a causal effect on BMI. It is obvious that different work type has different timetable and different workload. People who are self-employed are more likely to work harder because they work for themselves, and how much they spent on work directly influence their income, so the harder they work, the less chance they get fat, so this kind of person more likely to have lower BMI. The people who work for government, they are more likely to have a lower workload so they may get higher BMI. And there also is a group called children in work type we already know that for different age group, people have different BMI standard. So, different work type must have causal effect on BMI value.
+
+Khan SS et.al\cite{khan2018association} made research about heart disease and BMI, and from the research we can know that heart disease is highly associated with BMI value.\par
+
+As we know, glucose level is an important health indicator. And glucose level also has causal effect on BMI. From the research of E Sepp et.al\cite{sepp2014higher}, we can know that blood glucose level is positively correlated with BMI, but we notice that in the dataset, some subject has very high glucose level, but they also have the very low BMI, it is because people with very high glucose level, they are more likely to have hyperglycemia, at first they were likely to be fat, but as the illness getting worse, the ability of composing fat, protein and nucleic acid is getting worse, too. Cells depletion getting more and more, but the cell regeneration material is less and less, as a result, this kind of people get very thin, so their BMI is extremely low. But this does not influence the overall tendency between blood glucose and BMI value.\par
+
+
+
+Smoking status is also a causal cause of BMI. From the research by Nattinee Jitnarin et.al\cite{jitnarin2014relationship} we can know that light smokers had significantly lower BMI value than moderate smokers and heavy smokers. For male, people who take 1-9 cigarettes per day have an average BMI 21.3, people who take 10-19cigarettes per day have an average BMI 21.8, people who take more than 20 cigarettes per day have an average BMI 22.2. And the values for female is 21.9, 22.8 and 24.9, it is more significant than male.\par
+
+Next, it is easy to find out that there are still some other features are associated with work type. One is age, it is obvious that work type 0-children and 2-never worked are more likely for children and people who are just graduate, so the age is a causal cause of work type. The other one is residence type. The people live in city have more chances to work for government and private.\par
+
+From the research of Bornemisza P et.al\cite{bornemisza1980effect}, we know that the smoking status is a causal cause of blood glucose level. The research investigated in 26 diabetic patients and 24 normal controls, they found out that smoking make glucose level higher.\par
+
+Jay H.Lubin et.al\cite{lubin2016risk} and Virdis A et.al\cite{virdis2010cigarette} have made research to prove smoking status is the causal cause of heart disease and hypertension.\par
+
+Finally, there is still a feature in this database, ever married. After searching for information, we don’t think it is associated with any other feature in this dataset. So we leave it alone.\par
+
+
+
+\section{Approach}
+
+We use standardization and IP weighting to estimate the causal effect.
+\subsection{Standardization}
+For a conditionally randomized experiment, the counterfactual risk $Pr[Y^{a}=1]$ can be computed using the weighted average:
+
+\begin{footnotesize}
+\begin{equation}
+Pr[Y^{a}=1] = Pr[Y=1|A=a] = \sum_{l}Pr[Y=1|L=l,A=a]Pr[L=l]
+\end{equation}
+\end{footnotesize}
+
+
+All we need to do is to estimate $Pr[L=l]$ and $Pr[Y=1|L=l,A=a]$ for all $l$ and $a$. When the number of covariates is small and the covariates are discrete, we can simply count the number of corresponding examples and use the frequency as the probability. But when the number of covariates is large or some of them are continuous, we prefer to use propensity score $p(L)=Pr[A=1|L]$ rather than $Pr[L=l]$. In this way, the average causal difference is 
+
+\begin{footnotesize}
+\begin{equation}
+\begin{split}
+E[Y^{a=1}|p(L)=s]-E[Y^{a=0}|p(L)=s]= \\
+E[Y|A=1,p(L)=s]-E[Y|A=0,p(L)=s]
+\end{split}
+\end{equation}
+\end{footnotesize}
+
+\subsection{IP weighting}
+IP weighting generally creates a pseudo-population in which the arrow $L \rightarrow A$ from the confounders to the treatment is removed. The stabilized weigh ts are defined as $SW^{A}=\frac{f(A)}{f(A|L)}$, where $f(A)$ can be estimated using the frequency, $f(A|L)$ can be estimated using either the frequency(when the number of covariates is small and all of them are discrete) or the logistic regression(when the number of covariates is large or some of them are continuous). Then we fit the linear mean model $E[Y|A]=\theta_{0}+\theta_{1}A$ by weighted least squares, and the weight is $SW^{A=a}$ for the example who has the treatment value $a$. The average causal difference is therefore $E[Y|A=1]-E[Y|A=0]$.
+
+
+\section{Casual Graph Analysis and Result}
+\subsection{Adult Dataset}
+
+\textbf{Causal Problem}\par
+Our goal problem is to find the causal effect of having bachelor degree on whether the income could more than 50K. From the causal graph, we need to block the backdoor path to adjust  the confounding which means condition on “Country” and “sex”. \par
+
+\textbf{Graph Analysis} \par
+In order to adjust the confounding bias, we would choose a set of variables L to block all the back door path. \par
+
+Condition on \textbf{\textit{Sex}} could block the path:
+\begin{enumerate}
+\item $Education \leftarrow Sex \rightarrow Occupation \rightarrow income $
+\item $Education \leftarrow  Sex \rightarrow Occupation \rightarrow Hour per week \rightarrow income $ 
+\item $Education \leftarrow  Sex \rightarrow Occupation \rightarrow Capital\, Loss \rightarrow income$
+\item $Education \leftarrow  Sex \rightarrow Occupation \rightarrow Capital\, Gain \rightarrow income$
+\end{enumerate}
+Condition on \textbf{\textit{native country}} could block the path:
+\begin{enumerate}
+\item $Education \leftarrow native country \rightarrow income$ \par
+\end{enumerate}
+
+\textbf{Result}
+
+For IP weighting:
+
+$$
+Pr[Y^{a=1}=1]=0.4661
+$$
+$$
+Pr[Y^{a=0}=1]=0.1835
+$$
+
+$$Causal\,Difference = 0.4661-0.1835=0.2776$$
+$$Causal\,Ratio= \frac{0.4612}{0.1835}=2.5124$$
+\par
+Both Difference and ratio tells that having bachelor degree has causal effect on  the income (more than 50K). \par
+
+
+For  Standardization
+
+
+$$Pr[Y^{a=1}=1]=0.4596$$
+$$Pr[Y^{a=0}=1]=0.1839$$
+
+$$Causal\,Difference = 0.4596-0.1839=0.275$$
+
+$$Causal\, Ratio= \frac{0.4596}{0.1835}=2. 2.498$$ 
+
+Both Difference and ratio tells that having bachelor degree has causal effect on  the income (more than 50K).
+
+
+We get the same caudal difference and ration through the 2 methods, which also proves that the professor said they are mathematically equal.
+
+\subsection{Health-Care Dataset}
+
+
+\section{Conclusions}
+Here you briefly summarize your findings.
+
+%++++++++++++++++++++++++++++++++++++++++
+% References section will be created automatically 
+% with inclusion of "thebibliography" environment
+% as it shown below. See text starting with line
+% \begin{thebibliography}{99}
+% Note: with this approach it is YOUR responsibility to put them in order
+% of appearance.
+
+
+\bibliographystyle{ieeetr}
+\bibliography{paper}
+
+\newpage
+
+\begin{appendices}
+\section{Attributes on Adult}
+\subsection{Nominal Attribute}
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|p{9cm}|} %l(left)居左显示 r(right)居右显示 c居中显示
+\hline 
+Nominal Attribue & Values\\
+\hline 
+workclass & Private, Self-emp-not-inc, Self-emp-inc, Federal-gov, Local-gov, State-gov, Withoutpay, Never-workeds \\
+\hline 
+education & Bachelors, Some-college, 11th, HS-grad, Prof-school, Assoc-acdm, Assoc-voc, 9th, 7th8th, 12th, Masters, 1st-4th, 10th, Doctorate, 5th-6th, Preschool. \\
+\hline
+marital-status & Married-civ-spouse, Divorced, Never-married, Separated, Widowed, Marriedspouse-absent, Married-AF-spouse. \\
+\hline
+occupation & Tech-support, Craft-repair, Other-service, Sales, Exec-managerial, Prof-specialty, Handlers-cleaners, Machine-op-inspct, Adm-clerical, Farming-fishing, Transport-moving, Priv-house-serv, Protective-serv, Armed-Forces \\
+\hline
+relationship & Wife, Own-child, Husband, Not-in-family, Other-relative, Unmarried. \\
+\hline
+race & White, Asian-Pac-Islander, Amer-Indian-Eskimo, Other, Black. \\
+\hline
+sex & Female, Male. \\
+\hline
+native-country & United-States, Cambodia, England, Puerto-Rico, Canada, Germany, Outlying-US(Guam-USVI-etc), India, Japan, Greece, South, China, Cuba, etc.\\
+\hline
+\end{tabular}
+\caption{Nominal Attributes in Adult}
+\end{table}
+\newpage
+
+\subsection{Continuous Attributes}
+\begin{table}[hbpt]
+\centering
+\begin{tabular}{|c|c|c|c|c|c|} %l(left)居左显示 r(right)居右显示 c居中显示
+\hline 
+Attribute & Mean & Median & Min & Max & Standard Deviation\\
+\hline 
+age & 38.64 & 37 & 17 & 90 & 13.711 \\
+\hline
+capital-gain &  1079.068 & 0 & 0 & 99999 & 7452.019\\ 
+\hline
+capital-loss & 87.502 & 0 & 0 & 4356 & 403.005 \\ 
+\hline
+hours-per-week & 40.442 & 40 & 1 & 99 & 12.391 \\
+\hline
+\end{tabular}
+\caption{Nominal Attributes in Adult}
+\end{table}
+
+
+\end{appendices}
+
+\end{document}
