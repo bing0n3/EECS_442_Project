@@ -184,7 +184,7 @@ Pr[Y^{a}=1] = Pr[Y=1|A=a] = \sum_{l}Pr[Y=1|L=l,A=a]Pr[L=l]
 \end{footnotesize}
 
 
-All we need to do is to estimate $Pr[L=l]$ and $Pr[Y=1|L=l,A=a]$ for all $l$ and $a$. When the number of covariates is small and the covariates are discrete, we can simply count the number of corresponding examples and use the frequency as the probability. But when the number of covariates is large or some of them are continuous, we prefer to use propensity score $p(L)=Pr[A=1|L]$ rather than $Pr[L=l]$. In this way, the average causal difference is 
+All we need to do is to estimate $Pr[L=l]$ and $Pr[Y=1|L=l,A=a]$ for all $l$ and $a$. When the number of covariates is small and the covariates are discrete, we can simply count the number of corresponding examples and use the frequency as the probability(nonparametric way). But when the number of covariates is large or some of them are continuous, we prefer to use propensity score $p(L)=Pr[A=1|L]$ rather than $Pr[L=l]$(parametric way). In this way, the average causal difference is 
 
 \begin{footnotesize}
 \begin{equation}
@@ -196,7 +196,8 @@ E[Y|A=1,p(L)=s]-E[Y|A=0,p(L)=s]
 \end{footnotesize}
 
 \subsection{IP weighting}
-IP weighting generally creates a pseudo-population in which the arrow $L \rightarrow A$ from the confounders to the treatment is removed. The stabilized weigh ts are defined as $SW^{A}=\frac{f(A)}{f(A|L)}$, where $f(A)$ can be estimated using the frequency, $f(A|L)$ can be estimated using either the frequency(when the number of covariates is small and all of them are discrete) or the logistic regression(when the number of covariates is large or some of them are continuous). Then we fit the linear mean model $E[Y|A]=\theta_{0}+\theta_{1}A$ by weighted least squares, and the weight is $SW^{A=a}$ for the example who has the treatment value $a$. The average causal difference is therefore $E[Y|A=1]-E[Y|A=0]$.
+IP weighting generally creates a pseudo-population in which the arrow $L \rightarrow A$ from the confounders to the treatment is removed. IP weighting also has a nonparametric method and a parametric method. For nonparametric method, we create a pseudo-population in which every example appears twice, treated and untreated. Then $Pr[Y^{a=1}=1]$ and $Pr[Y_{a=0}=1]$ can be estimated by the corresponding frequency in the pseudo-population. 
+For parametric method, we have to compute the stabilized weights and fit a linear mean model by weighted least squares using the weights. The stabilized weights are defined as $SW^{A}=\frac{f(A)}{f(A|L)}$, where $f(A)$ can be estimated using the frequency, $f(A|L)$ can be estimated using either the frequency(when the number of covariates is small and all of them are discrete) or the logistic regression(when the number of covariates is large or some of them are continuous). Then we fit the linear mean model $E[Y|A]=\theta_{0}+\theta_{1}A$ by weighted least squares, and the weight is $SW^{A=a}$ for the example who has the treatment value $a$. The average causal difference is therefore $E[Y|A=1]-E[Y|A=0]$.
 
 
 \section{Casual Graph Analysis and Result}
@@ -221,6 +222,7 @@ Condition on \textbf{\textit{native country}} could block the path:
 \end{enumerate}
 
 \textbf{Result}
+Because \textbf{\textit{Sex}}, \textbf{\textit{native country}}, \textbf{\textit{education}}, \textbf{\textit{income}} are all discrete, we use nonparametric method in both IP weighting and standardization to estimate the causal effect.
 
 For IP weighting:
 
@@ -254,7 +256,9 @@ We get the same caudal difference and ration through the 2 methods, which also p
 
 \subsection{Health-Care Dataset}
 \textbf{Causal Problem}\par
+
 Our causal problem is to compute the causal effect of having a heart disease on BMI. The backdoor paths are:
+
 \begin{enumerate}
 \item $heart_disease \leftarrow avg_glucose_level \rightarrow bmi $
 \item $heart_disease \leftarrow avg_glucose_level \leftarrow smoking_status \rightarrow bmi $ 
@@ -263,20 +267,32 @@ Our causal problem is to compute the causal effect of having a heart disease on 
 \item $heart_disease \leftarrow hypertension \leftarrow smoking_status \rightarrow avg_glucose_level \rightarrow bmi $
 \item $heart_disease \leftarrow hypertension \leftarrow smoking_status \rightarrow bmi $
 \end{enumerate}
+
 To block all backdoor paths from \emph{heart_disease} to \emph{bmi}, we have to condition on \emph{avg_glucose_level} and \emph{smoking_status}.
-\textbf{IP Weighting}\par
-We use stabilized weight $SW^{A}$, so we need to estimate $p(A)$ and $p(A|L)$.
+
+\textbf{IP Weighting Implementation}\par
+
+Because the confounder \emph{avg_glucose_level} is continuous, we use parametric method of IP weighting. To compute the stabilized weight $SW^{A}$, we need to estimate $p(A)$ and $p(A|L)$.
+
 For $p(A)$, because the treatment feature \emph{heart_disease} is binary, we can simply count the number of examples with A=0 or A=1, and use the frequency as the probability.
-For $p(A|L)$, because the confounder \emph{avg_glucose_level} is continuous, we use logistic regression to model $p(A|L)$.
+
+For $p(A|L)$, we use logistic regression to model $p(A|L)$.
+
 Now that we have the stabilized weights, we fit the linear mean model $E[Y|A]=\theta_{0}+\theta_{1}A$ by weighted least squares using the stabilized weights. The causal effect is $E[Y|A=1]-E[Y|A=0]$
-\textbf{Standardization}\par
-Because the confounder \emph{avg_glucose_level} is continuous, we use propensity score $p(L)=Pr[A=1|L]$ rather than $Pr[L=l]$.
+
+\textbf{Standardization Implementation}\par
+
+Because the confounder \emph{avg_glucose_level} is continuous, we use parametric method of standardization. The propensity score $p(L)=Pr[A=1|L]$ is used rather than $Pr[L=l]$.
+
 First, we use logistic regression to model $p(A|L)$. We now have the propensity score $p(L)=p(A=1|L)$ for each example.
+
 Then we divide the dataset into 50 stratas with approximately same number of examples in terms of the propensity scores.
 Finally we compute the average causal effect using
 $$E[Y^{a=1}|p(L)=s]-E[Y^{a=0}|p(L)=s]=E[Y|A=1,p(L)=s]-E[Y|A=0,p(L)=s]$$
 Where $p(L)=s$ means data in the s$th$ strata.
+
 \textbf{Result}\par
+
 In both IP weighting and standardization, we use 12345 as the random seed in logistic regression.
 
 IP weighting:
